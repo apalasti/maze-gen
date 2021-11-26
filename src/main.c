@@ -1,6 +1,7 @@
 #include "bmp.h"
 #include "flags.h"
 #include "maze.h"
+#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,11 +14,17 @@ int main(int argc, char *argv[]) {
     int *width = new_int_flag("mw", 10, "The width of the maze");
     int *height = new_int_flag("mh", 10, "The height of the maze");
 
+    int *block_size = new_int_flag("bs", 5, "The size of a square in the maze in pixels");
+
     char **out_path = new_str_flag("o", NULL, "Path to the output bmp file. If this is set it will output a picture into the specified file.");
 
     bool *help = new_bool_flag("h", false, "Prints out this help message");
 
     parse_flags(argc, argv);
+
+    assert(width > 0);
+    assert(height > 0);
+    assert(block_size > 0);
 
     if (*help == true) {
         print_flags_usage(stdout);
@@ -54,11 +61,11 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
 
-        Pixel **pixels = gen_pixel_arr_from_maze(m);
+        Pixel **pixels = gen_pixel_arr_from_maze(m, *block_size);
 
         create_image_from_pixels(fp, pixels,
-                                 get_maze_width_in_pixels(m->width),
-                                 get_maze_height_in_pixels(m->height));
+                                 get_maze_width_in_pixels(m->width, *block_size),
+                                 get_maze_height_in_pixels(m->height, *block_size));
 
         fclose(fp);
         free_pixel_array(pixels);

@@ -26,13 +26,13 @@ typedef struct Maze {
     int width, height;
 } Maze;
 
-int get_maze_width_in_pixels(int width);
+int get_maze_width_in_pixels(int width, int block_size);
 
-int get_maze_height_in_pixels(int height);
+int get_maze_height_in_pixels(int height, int block_size);
+
+Pixel **gen_pixel_arr_from_maze(const Maze *m, int block_size);
 
 Maze *init_maze(int width, int height);
-
-Pixel **gen_pixel_arr_from_maze(const Maze *m);
 
 void generate_maze(Maze *m, int start_x, int start_y);
 

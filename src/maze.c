@@ -13,43 +13,59 @@ const int MOVES[DIRECTION_COUNT][2] = {
     [BOTTOM] = {0, 1},
 };
 
-int get_maze_width_in_pixels(int width) {
-    return width * 2 + 1;
+int get_maze_width_in_pixels(int width, int block_size) {
+    return (width * 2 + 1) * block_size;
 }
 
-int get_maze_height_in_pixels(int height) {
-    return height * 2 + 1;
+int get_maze_height_in_pixels(int height, int block_size) {
+    return (height * 2 + 1) * block_size;
 }
 
-Pixel **gen_pixel_arr_from_maze(const Maze *m) {
+static void fill_pixels(Pixel **pixels, int x, int y, Pixel p, int block_size) {
+    for (int i = 0; i < block_size; i++) {
+        for (int j = 0; j < block_size; j++) {
+            pixels[y + i][x + j] = p;
+        }
+    }
+}
+
+Pixel **gen_pixel_arr_from_maze(const Maze *m, int block_size) {
+    assert(block_size > 0);
+
     Pixel wall = {.r = 0, .g = 0, .b = 0, .a = 255};        // black
     Pixel space = {.r = 255, .g = 255, .b = 255, .a = 255}; // white
 
-    Pixel **pixels = init_pixel_array(get_maze_width_in_pixels(m->width),
-                                      get_maze_height_in_pixels(m->height));
+    Pixel **pixels = init_pixel_array(get_maze_width_in_pixels(m->width, block_size),
+                                      get_maze_height_in_pixels(m->height, block_size));
 
     for (int y = 0; y < m->height; y++) {
-        int y_in_pixels = 2 * y + 1;
+        int y_in_pixels = (2 * y + 1) * block_size;
 
         for (int x = 0; x < m->width; x++) {
-            int x_in_pixels = 2 * x + 1;
+            int x_in_pixels = (2 * x + 1) * block_size;
 
-            pixels[y_in_pixels][x_in_pixels] = space;
+            // pixels[y_in_pixels][x_in_pixels] = space;
+            fill_pixels(pixels, x_in_pixels, y_in_pixels, space, block_size);
 
             // draw the four walls around cell
             for (int dir = TOP; dir < DIRECTION_COUNT; dir++) {
                 bool is_wall = m->cells[y][x].walls[dir];
-                int move_x = x_in_pixels + MOVES[dir][0],
-                    move_y = y_in_pixels + MOVES[dir][1];
+                int move_x = x_in_pixels + MOVES[dir][0] * block_size,
+                    move_y = y_in_pixels + MOVES[dir][1] * block_size;
 
-                pixels[move_y][move_x] = is_wall ? wall : space;
+                // pixels[move_y][move_x] = is_wall ? wall : space;
+                fill_pixels(pixels, move_x, move_y, is_wall ? wall : space, block_size);
             }
 
             // fill diagonal corners
-            pixels[y_in_pixels - 1][x_in_pixels - 1] = wall;
-            pixels[y_in_pixels - 1][x_in_pixels + 1] = wall;
-            pixels[y_in_pixels + 1][x_in_pixels - 1] = wall;
-            pixels[y_in_pixels + 1][x_in_pixels + 1] = wall;
+            fill_pixels(pixels, x_in_pixels - 1 * block_size, y_in_pixels - 1 * block_size, wall, block_size); // top-left
+            fill_pixels(pixels, x_in_pixels + 1 * block_size, y_in_pixels - 1 * block_size, wall, block_size); // top-right
+            fill_pixels(pixels, x_in_pixels - 1 * block_size, y_in_pixels + 1 * block_size, wall, block_size); // bottom-left
+            fill_pixels(pixels, x_in_pixels + 1 * block_size, y_in_pixels + 1 * block_size, wall, block_size); // bottom-right
+            // pixels[y_in_pixels - 1][x_in_pixels - 1] = wall;
+            // pixels[y_in_pixels - 1][x_in_pixels + 1] = wall;
+            // pixels[y_in_pixels + 1][x_in_pixels - 1] = wall;
+            // pixels[y_in_pixels + 1][x_in_pixels + 1] = wall;
         }
     }
 
