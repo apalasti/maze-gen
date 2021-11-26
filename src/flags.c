@@ -12,6 +12,13 @@ typedef enum FlagTypes {
     FLAG_COUNT
 } FlagTypes;
 
+typedef enum FlagErrors {
+    FLAG_NO_ERROR = 0,
+    FLAG_ERROR_UNKNOWN,
+    FLAG_ERROR_NO_VALUE,
+    FLAG_ERROR_INVALID_VALUE,
+};
+
 typedef union FlagData {
     int d;
     bool b;
@@ -67,7 +74,7 @@ void print_flags_usage(FILE *out) {
                 break;
 
             case FLAG_BOOL:
-                fprintf(out, "    -%s\n", flags[i].name);
+                fprintf(out, "    -%s Default: %s\n", flags[i].name, flags[i].def.b ? "true" : "false");
                 fprintf(out, "        %s\n", flags[i].desc);
                 break;
 
@@ -101,8 +108,8 @@ void parse_flags(int argc, char *argv[]) {
     next_arg(&argc, &argv);
 
     while (argc > 0) {
-        bool recognized = false;
         char *arg = next_arg(&argc, &argv);
+        bool recognized = false;
         for (int flag_idx = 0; flag_idx < flag_cnt; flag_idx++) {
 
             // parse: -flag_name
