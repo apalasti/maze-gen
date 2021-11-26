@@ -14,8 +14,10 @@ char **new_str_flag(const char *name, char *def, const char *desc);
 
 bool *new_bool_flag(const char *name, bool def, const char *desc);
 
+bool parse_flags(int argc, char *argv[]);
+
 void print_flags_usage(FILE *out);
 
-void parse_flags(int argc, char *argv[]);
+void print_flag_error(FILE *out);
 
 #endif
