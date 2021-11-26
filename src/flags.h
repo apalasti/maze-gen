@@ -12,6 +12,8 @@ int *new_int_flag(const char *name, int def, const char *desc);
 
 char **new_str_flag(const char *name, char *def, const char *desc);
 
+bool *new_bool_flag(const char *name, bool def, const char *desc);
+
 void print_flags_usage(FILE *out);
 
 void parse_flags(int argc, char *argv[]);

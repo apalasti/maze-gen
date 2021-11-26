@@ -10,12 +10,19 @@
 const int LABIRINTH_SIZE = 5;
 
 int main(int argc, char *argv[]) {
-    int *width = new_int_flag("w", 10, "The width of the maze");
-    int *height = new_int_flag("h", 10, "The height of the maze");
+    int *width = new_int_flag("mw", 10, "The width of the maze");
+    int *height = new_int_flag("mh", 10, "The height of the maze");
 
     char **out_path = new_str_flag("o", NULL, "Path to the output bmp file. If this is set it will output a picture into the specified file.");
 
+    bool *help = new_bool_flag("h", false, "Prints out this help message");
+
     parse_flags(argc, argv);
+
+    if (*help == true) {
+        print_flags_usage(stdout);
+        exit(EXIT_SUCCESS);
+    }
 
     srand(time(NULL));
 

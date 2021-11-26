@@ -8,11 +8,13 @@
 typedef enum FlagTypes {
     FLAG_INT = 0,
     FLAG_STR,
+    FLAG_BOOL,
     FLAG_COUNT
 } FlagTypes;
 
 typedef union FlagData {
     int d;
+    bool b;
     char *str;
 } FlagData;
 
@@ -41,6 +43,13 @@ int *new_int_flag(const char *name, int def, const char *desc) {
     return &(new->data.d);
 }
 
+bool *new_bool_flag(const char *name, bool def, const char *desc) {
+    Flag *new = new_flag(FLAG_BOOL, name, desc);
+    new->def.b = def;
+    new->data.b = def;
+    return &(new->data.b);
+}
+
 char **new_str_flag(const char *name, char *def, const char *desc) {
     Flag *new = new_flag(FLAG_STR, name, desc);
     new->def.str = def;
@@ -54,6 +63,11 @@ void print_flags_usage(FILE *out) {
         switch (flags[i].type) {
             case FLAG_INT:
                 fprintf(out, "    -%s <int> Default: %d\n", flags[i].name, flags[i].def.d);
+                fprintf(out, "        %s\n", flags[i].desc);
+                break;
+
+            case FLAG_BOOL:
+                fprintf(out, "    -%s\n", flags[i].name);
                 fprintf(out, "        %s\n", flags[i].desc);
                 break;
 
@@ -75,39 +89,55 @@ void print_flags_usage(FILE *out) {
 }
 
 void parse_flags(int argc, char *argv[]) {
-    Flag *prev = NULL;
-
-    for (int i = 0; i < argc; i++) {
-        if (prev != NULL) {
-            switch (prev->type) {
-                case FLAG_INT:
-                    // if sscanf did not successfully read in a value
-                    if (sscanf(argv[i], "%d", &(prev->data.d)) != 1) {
-                        print_flags_usage(stderr);
-                        exit(EXIT_FAILURE);
-                    }
-                    break;
-
-                case FLAG_STR:
-                    prev->data.str = argv[i];
-                    break;
-
-                default:
-                    assert(0 && "Unhandled flag type");
-                    break;
-            }
-
-            prev = NULL;
-            continue;
-        }
-
+    for (int i = 1; i < argc; i++) {
+        bool recognized = false;
         for (int flag_idx = 0; flag_idx < flag_cnt; flag_idx++) {
 
             // parse: -flag_name
             if (1 < strlen(argv[i]) && strcmp(argv[i] + 1, flags[flag_idx].name) == 0) {
-                prev = &(flags[flag_idx]);
+                recognized = true;
+                Flag *flag = &(flags[flag_idx]);
+
+                // check if we are at the end of the flags
+                if (flag->type != FLAG_BOOL && i == argc - 1) {
+                    fprintf(stderr, "ERROR: You did not provide a flag value for: '%s'\n", argv[i]);
+                    print_flags_usage(stderr);
+                    exit(EXIT_FAILURE);
+                }
+
+                // parse flags
+                switch (flag->type) {
+                    case FLAG_INT:
+                        // if sscanf did not successfully read in a value
+                        if (sscanf(argv[i + 1], "%d", &(flag->data.d)) != 1) {
+                            fprintf(stderr, "ERROR: Could not parse flag value: '%s', for flag '%s'\n", argv[i + 1], argv[i]);
+                            print_flags_usage(stderr);
+                            exit(EXIT_FAILURE);
+                        }
+                        break;
+
+                    case FLAG_BOOL:
+                        flag->data.b = true;
+                        break;
+
+                    case FLAG_STR:
+                        flag->data.str = argv[i + 1];
+                        break;
+
+                    default:
+                        assert(0 && "Unhandled flag type");
+                        break;
+                }
+
+                // we found the matching flag so break out from the loop
+                i++;
                 break;
             }
+        }
+        if (recognized == false) {
+            fprintf(stderr, "ERROR: Unrecognized flag: '%s'\n", argv[i]);
+            print_flags_usage(stderr);
+            exit(EXIT_FAILURE);
         }
     }
 }
