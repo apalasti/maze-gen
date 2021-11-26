@@ -42,6 +42,8 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
 
+        clock_t start = clock();
+
         Maze *m = init_maze(*width, *height);
         generate_maze(m, 0, 0);
 
@@ -60,10 +62,13 @@ int main(int argc, char *argv[]) {
 
         fclose(fp);
         free_pixel_array(pixels);
-
-        fprintf(stdout, "Successfully generated maze in: '%s'\n", *out_path);
-
         free_maze(m);
+
+        clock_t end = clock();
+
+        fprintf(stdout, "Successfully generated maze at: '%s' (%fs)\n",
+                *out_path,
+                (double)(end - start) / CLOCKS_PER_SEC);
     }
 
     return 0;
