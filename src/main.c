@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     int *width = new_int_flag("w", 10, "The width of the maze");
     int *height = new_int_flag("h", 10, "The height of the maze");
 
-    char **out_path = new_str_flag("o", NULL, "Path to the output bmp file. If this is set it will output a picture into a specified file.");
+    char **out_path = new_str_flag("o", NULL, "Path to the output bmp file. If this is set it will output a picture into the specified file.");
 
     parse_flags(argc, argv);
 
