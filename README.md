@@ -2,4 +2,4 @@
 
 It generates a maze like this:
 
-![maze](./maze.bmp)
+![maze](maze.bmp)
