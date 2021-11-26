@@ -16,7 +16,7 @@ bool *new_bool_flag(const char *name, bool def, const char *desc);
 
 bool parse_flags(int argc, char *argv[]);
 
-void print_flags_usage(FILE *out);
+void print_flag_usage(FILE *out);
 
 void print_flag_error(FILE *out);
 

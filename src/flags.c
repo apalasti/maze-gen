@@ -1,4 +1,5 @@
 #include "flags.h"
+#include "util.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -17,12 +18,13 @@ typedef enum FlagErrors {
     FLAG_ERROR_UNKNOWN,
     FLAG_ERROR_NO_VALUE,
     FLAG_ERROR_INVALID_VALUE,
+    FLAG_ERROR_COUNT
 } FlagErrors;
 
 typedef union FlagData {
-    int d;
-    bool b;
-    char *str;
+    int as_int;
+    bool as_bool;
+    char *as_str;
 } FlagData;
 
 typedef struct Flag {
@@ -35,66 +37,69 @@ typedef struct Flag {
 
 typedef struct FlagContext {
     Flag flags[FLAG_CAP];
-    int flag_cnt;
+    int flag_count;
 
     FlagErrors error_type;
     char *errored_flag; /* The name of the flag which errored */
 } FlagContext;
 
-static FlagContext flag_context = {
-    .flag_cnt = 0,
-    .error_type = FLAG_NO_ERROR,
-};
+static FlagContext flag_global_context = {.flag_count = 0, .error_type = FLAG_NO_ERROR};
 
 static Flag *new_flag(FlagTypes type, const char *name, const char *desc) {
-    // you have to increase FLAG_CAP because you have too much flags
-    assert(flag_context.flag_cnt != FLAG_CAP);
-    flag_context.flags[flag_context.flag_cnt++] = (Flag){.type = type, .name = name, .desc = desc};
-    return &(flag_context.flags[flag_context.flag_cnt - 1]);
+    FlagContext *c = &flag_global_context;
+    assert(c->flag_count < FLAG_CAP);
+    Flag *flag = &(c->flags[c->flag_count++]);
+    flag->type = type;
+    flag->name = name;
+    flag->desc = desc;
+    return flag;
 }
 
 int *new_int_flag(const char *name, int def, const char *desc) {
     Flag *new = new_flag(FLAG_INT, name, desc);
-    new->def.d = def;
-    new->data.d = def;
-    return &(new->data.d);
+    new->def.as_int = def;
+    new->data.as_int = def;
+    return &(new->data.as_int);
 }
 
 bool *new_bool_flag(const char *name, bool def, const char *desc) {
     Flag *new = new_flag(FLAG_BOOL, name, desc);
-    new->def.b = def;
-    new->data.b = def;
-    return &(new->data.b);
+    new->def.as_bool = def;
+    new->data.as_bool = def;
+    return &(new->data.as_bool);
 }
 
 char **new_str_flag(const char *name, char *def, const char *desc) {
     Flag *new = new_flag(FLAG_STR, name, desc);
-    new->def.str = def;
-    new->data.str = def;
-    return &(new->data.str);
+    new->def.as_str = def;
+    new->data.as_str = def;
+    return &(new->data.as_str);
 }
 
-void print_flags_usage(FILE *out) {
+void print_flag_usage(FILE *out) {
+    FlagContext *c = &flag_global_context;
     fprintf(out, "USAGE:\n");
-    for (int i = 0; i < flag_context.flag_cnt; i++) {
-        Flag cur_flag = flag_context.flags[i];
-        switch (cur_flag.type) {
+    for (int i = 0; i < c->flag_count; i++) {
+        Flag *flag = &(c->flags[i]);
+        switch (flag->type) {
             case FLAG_INT:
-                fprintf(out, "    -%s <int> Default: %d\n", cur_flag.name, cur_flag.def.d);
-                fprintf(out, "        %s\n", cur_flag.desc);
+                fprintf(out, "    -%s <int> Default: %d\n", flag->name, flag->def.as_int);
+                fprintf(out, "        %s\n", flag->desc);
                 break;
 
             case FLAG_BOOL:
-                fprintf(out, "    -%s Default: %s\n", cur_flag.name, cur_flag.def.b ? "true" : "false");
-                fprintf(out, "        %s\n", cur_flag.desc);
+                fprintf(out, "    -%s Default: %s\n", flag->name, flag->def.as_bool ? "true" : "false");
+                fprintf(out, "        %s\n", flag->desc);
                 break;
 
             case FLAG_STR: {
-                bool has_default = cur_flag.def.str != NULL;
-                fprintf(out, "    -%s <string> %s%s\n", cur_flag.name,
-                        has_default ? "Default: " : "No default",
-                        has_default ? cur_flag.def.str : "");
-                fprintf(out, "        %s\n", cur_flag.desc);
+                fprintf(out, "    -%s <string>", flag->name);
+                if (flag->def.as_str != NULL)
+                    fprintf(out, " Default: %s", flag->def.as_str);
+                else
+                    fprintf(out, "\n");
+
+                fprintf(out, "        %s\n", flag->desc);
                 break;
             }
 
@@ -102,7 +107,7 @@ void print_flags_usage(FILE *out) {
                 assert(0 && "Unhandled flag type");
                 break;
         }
-        fprintf(out, "\n");
+        fprintf(out, "%s", i == c->flag_count - 1 ? "" : "\n");
     }
 }
 
@@ -118,11 +123,13 @@ bool parse_flags(int argc, char *argv[]) {
     // the first arg is always the execution so we can throw that away
     next_arg(&argc, &argv);
 
+    FlagContext *c = &flag_global_context;
+
     while (argc > 0) {
         char *arg = next_arg(&argc, &argv);
         bool found = false;
-        for (int i = 0; i < flag_context.flag_cnt; i++) {
-            Flag *flag = &(flag_context.flags[i]);
+        for (int i = 0; i < c->flag_count; i++) {
+            Flag *flag = &(c->flags[i]);
 
             // parse: -flag_name
             if (1 < strlen(arg) && strcmp(arg + 1, flag->name) == 0) {
@@ -131,35 +138,35 @@ bool parse_flags(int argc, char *argv[]) {
                 switch (flag->type) {
                     case FLAG_INT: {
                         if (argc == 0) {
-                            flag_context.error_type = FLAG_ERROR_NO_VALUE;
-                            flag_context.errored_flag = arg;
+                            c->error_type = FLAG_ERROR_NO_VALUE;
+                            c->errored_flag = arg;
                             return false;
                         }
 
                         char *val = next_arg(&argc, &argv);
                         // if sscanf did not successfully read in a value
-                        if (sscanf(val, "%d", &(flag->data.d)) != 1) {
-                            flag_context.error_type = FLAG_ERROR_INVALID_VALUE;
-                            flag_context.errored_flag = arg;
+                        if (sscanf(val, "%d", &(flag->data.as_int)) != 1) {
+                            c->error_type = FLAG_ERROR_INVALID_VALUE;
+                            c->errored_flag = arg;
                             return false;
                         }
                         break;
                     }
 
                     case FLAG_BOOL: {
-                        flag->data.b = true;
+                        flag->data.as_bool = true;
                         break;
                     }
 
                     case FLAG_STR: {
                         if (argc == 0) {
-                            flag_context.error_type = FLAG_ERROR_NO_VALUE;
-                            flag_context.errored_flag = arg;
+                            c->error_type = FLAG_ERROR_NO_VALUE;
+                            c->errored_flag = arg;
                             return false;
                         }
 
                         char *val = next_arg(&argc, &argv);
-                        flag->data.str = val;
+                        flag->data.as_str = val;
                         break;
                     }
 
@@ -167,17 +174,13 @@ bool parse_flags(int argc, char *argv[]) {
                         assert(0 && "Unhandled flag type");
                         break;
                 }
-
-                // we found the matching flag so break out from the loop
-                break;
+                found = true;
             }
-
-            found = true;
         }
 
         if (found == false) {
-            flag_context.error_type = FLAG_ERROR_UNKNOWN;
-            flag_context.errored_flag = arg;
+            c->error_type = FLAG_ERROR_UNKNOWN;
+            c->errored_flag = arg;
             return false;
         }
     }
@@ -186,18 +189,25 @@ bool parse_flags(int argc, char *argv[]) {
 }
 
 void print_flag_error(FILE *out) {
-    switch (flag_context.error_type) {
+    FlagContext *c = &flag_global_context;
+
+    switch (c->error_type) {
         case FLAG_NO_ERROR:
+            fprintf(out, "There were no errors during flag parsing\n");
             break;
+
         case FLAG_ERROR_UNKNOWN:
-            fprintf(out, "ERROR: Unrecognized flag: '%s'\n", flag_context.errored_flag);
+            fprintf(out, "ERROR: Unrecognized flag: '%s'\n", c->errored_flag);
             break;
+
         case FLAG_ERROR_NO_VALUE:
-            fprintf(out, "ERROR: You did not provide a flag value for: '%s'\n", flag_context.errored_flag);
+            fprintf(out, "ERROR: You did not provide a flag value for: '%s'\n", c->errored_flag);
             break;
+
         case FLAG_ERROR_INVALID_VALUE:
-            fprintf(out, "ERROR: Could not parse flag value for flag '%s'\n", flag_context.errored_flag);
+            fprintf(out, "ERROR: Could not parse value for flag: '%s'\n", c->errored_flag);
             break;
+
         default:
             assert(0 && "Unhandled error type");
             break;

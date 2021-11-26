@@ -8,7 +8,7 @@ OBJ = obj
 
 # LIBS = $(shell pkg-config --libs --cflags sdl2 sdl2_gfx SDL2_ttf) # libs to include
 
-CFLAGS = -Wall -Wextra -std=c99 -Wno-unused-command-line-argument $(LIBS)
+CFLAGS = -Wall -Wextra -std=c99 -Wno-unused-command-line-argument -pedantic $(LIBS)
 
 SRCS = $(wildcard $(SRC)/*.c) $(wildcard $(SRC)/**/*.c) # get all src files
 # INCLUDES = $(wildcard $(INCLUDE)/*.c) # get all include files

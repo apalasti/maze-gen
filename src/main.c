@@ -1,5 +1,4 @@
 #include "bmp.h"
-#include "flags.h"
 #include "maze.h"
 #include <assert.h>
 #include <errno.h>
@@ -8,28 +7,33 @@
 #include <string.h>
 #include <time.h>
 
-const int LABIRINTH_SIZE = 5;
+#define FLAG_CAP 5
+#include "flags.h"
 
 int main(int argc, char *argv[]) {
     int *width = new_int_flag("mw", 10, "The width of the maze");
     int *height = new_int_flag("mh", 10, "The height of the maze");
 
-    int *block_size = new_int_flag("bs", 5, "The size of a square in the maze in pixels");
+    int *block_size = new_int_flag("bs", 10, "The size of a square in the maze in pixels");
 
     char **out_path = new_str_flag("o", NULL, "Path to the output bmp file. If this is set it will output a picture into the specified file.");
 
-    bool *help = new_bool_flag("h", false, "Prints out this help message");
+    bool *help = new_bool_flag("h", false, "Prints out this help message and exits with 0");
 
-    parse_flags(argc, argv);
-
-    assert(width > 0);
-    assert(height > 0);
-    assert(block_size > 0);
+    if (parse_flags(argc, argv) == false) {
+        print_flag_error(stderr);
+        print_flag_usage(stderr);
+        exit(EXIT_FAILURE);
+    }
 
     if (*help == true) {
-        print_flags_usage(stdout);
+        print_flag_usage(stdout);
         exit(EXIT_SUCCESS);
     }
+
+    assert(*width > 0);
+    assert(*height > 0);
+    assert(*block_size > 0);
 
     srand(time(NULL));
 
@@ -66,6 +70,7 @@ int main(int argc, char *argv[]) {
         create_image_from_pixels(fp, pixels,
                                  get_maze_width_in_pixels(m->width, *block_size),
                                  get_maze_height_in_pixels(m->height, *block_size));
+        size_t file_size = ftell(fp);
 
         fclose(fp);
         free_pixel_array(pixels);
@@ -73,9 +78,10 @@ int main(int argc, char *argv[]) {
 
         clock_t end = clock();
 
-        fprintf(stdout, "Successfully generated maze at: '%s' (%fs)\n",
+        fprintf(stdout, "Successfully generated maze at: '%s' (%fs, %zu bytes)\n",
                 *out_path,
-                (double)(end - start) / CLOCKS_PER_SEC);
+                (double)(end - start) / CLOCKS_PER_SEC,
+                file_size);
     }
 
     return 0;

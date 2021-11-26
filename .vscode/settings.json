@@ -1,0 +1,24 @@
+{
+  "files.associations": {
+    "*.prisma": "prisma",
+    "*.rs": "rust",
+    "*.h": "c",
+    "__config": "c",
+    "algorithm": "c",
+    "chrono": "c",
+    "locale": "c",
+    "memory": "c",
+    "bitset": "c",
+    "cmath": "c",
+    "compare": "c",
+    "memory_resource": "c",
+    "iterator": "c",
+    "type_traits": "c",
+    "utility": "c",
+    "complex": "c",
+    "ios": "c",
+    "sstream": "c",
+    "string": "c",
+    "string_view": "c"
+  }
+}
