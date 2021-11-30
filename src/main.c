@@ -77,11 +77,12 @@ int main(int argc, char *argv[]) {
         free_maze(m);
 
         clock_t end = clock();
+        double duration = (double)(end - start) / CLOCKS_PER_SEC;
 
-        fprintf(stdout, "Successfully generated maze at: '%s' (%fs, %zu bytes)\n",
+        fprintf(stdout, "Successfully generated maze at: '%s' (%fs, %g MB)\n",
                 *out_path,
-                (double)(end - start) / CLOCKS_PER_SEC,
-                file_size);
+                duration,
+                file_size / (1000.0 * 1000.0));
     }
 
     return 0;
