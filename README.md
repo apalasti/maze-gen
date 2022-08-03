@@ -4,6 +4,10 @@ It generates a maze like this:
 
 ![maze](maze.bmp)
 
+And can solve it like this:
+
+![solution](solution.bmp)
+
 ## Usage:
 
 ```
