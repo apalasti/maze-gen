@@ -53,7 +53,7 @@ if __name__ == "__main__":
     import sys
     from PIL import Image
 
-    sys.setrecursionlimit(3000)
+    sys.setrecursionlimit(10000)
 
     img = Image.open("maze.bmp")
     maze = np.array(img)
@@ -61,5 +61,6 @@ if __name__ == "__main__":
 
     find_path(maze, (1, 1), (maze.shape[1] - 2, maze.shape[0] - 2))
 
-    solved = Image.fromarray(upscale(maze, 10))
+    solved = Image.fromarray(upscale(maze, 5))
+    # solved.save("solution.bmp")
     solved.show()
